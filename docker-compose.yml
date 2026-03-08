@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./flask-api
+    container_name: ger-eng-vocab-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URI: ${DATABASE_URI}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    ports:
+      - "${BACKEND_PORT}:5050"
+      
+  frontend:
+    build: ./frontend
+    container_name: ger-eng-vocab-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT}:5185"
