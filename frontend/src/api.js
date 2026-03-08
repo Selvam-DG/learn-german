@@ -1,5 +1,6 @@
-const API = "/api";
-
+// const API = "/api";
+const API = import.meta.env.VITE_API_URL;
+console.log("API is : ",API);
 export function getToken() {
   return localStorage.getItem("token");
 }
@@ -79,6 +80,7 @@ export async function learnDaily({ pos, n }) {
   if (pos) qs.set("pos", pos);
   if (n) qs.set("n", String(n));
   const res = await fetch(`${API}/vocab/daily?${qs.toString()}`);
+  console.log(res);
   if (!res.ok) throw new Error("Daily fetch failed");
   return res.json();
 }

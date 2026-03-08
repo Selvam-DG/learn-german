@@ -9,15 +9,15 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
-    host: true,
-    port: 5185,
-    strictPort: true,
-    proxy: {
-      "/api" : {
-        target: "http://backend:5050",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
-    },
+    // host: true,
+    // port: 5187,
+    // strictPort: true,
+    // proxy: {
+    //   "/api" : {
+    //     target: "http://backend:5050",
+    //     changeOrigin: true,
+    //     rewrite: (path) => path.replace(/^\/api/, ""),
+    //   },
+    // },
   },
 })
