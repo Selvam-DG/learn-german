@@ -84,3 +84,24 @@ export async function learnDaily({ pos, n }) {
   if (!res.ok) throw new Error("Daily fetch failed");
   return res.json();
 }
+
+
+export async function searchVocab(query, direction = "de-en") {
+  // direction: "de-en" = search german words, "en-de" = search english words
+  const qs = new URLSearchParams({ q: query, direction });
+  const res = await fetch(`${API}/vocab/search?${qs.toString()}`);
+  if (!res.ok) throw new Error("Search failed");
+  return res.json();
+}
+
+export async function vocabByLetter(letter) {
+  const res = await fetch(`${API}/vocab/browse?letter=${encodeURIComponent(letter)}`);
+  if (!res.ok) throw new Error("Browse failed");
+  return res.json();
+}
+
+export async function vocabDetail(id) {
+  const res = await fetch(`${API}/vocab/${id}`);
+  if (!res.ok) throw new Error("Detail fetch failed");
+  return res.json();
+}
