@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import db
-from ..models import Vocab  
+from ..models import Vocab, Story  
 from sqlalchemy import or_
 from .daily_vocab import to_dict
 vocab_bp = Blueprint("vocab_public", __name__)
@@ -66,4 +66,21 @@ def vocab_browse():
 @vocab_bp.route("/vocab/<int:id>", methods=["GET"])
 def vocab_detail(id):
     v = Vocab.query.get_or_404(id)
-    return jsonify(v.to_dict())
+
+    data = v.to_dict()
+
+    data["stories"] = [
+        {
+            "id": story.id,
+            "story_number": story.story_number,
+            "title": story.title,
+            "story_date": story.story_date.isoformat() if story.story_date else None,
+            "difficulty": story.difficulty or "easy",
+        }
+        for story in v.stories.order_by(Story.story_number.asc()).all()
+    ]
+
+    data["synonyms"] = []
+    data["notes"] = ""
+
+    return jsonify(data), 200

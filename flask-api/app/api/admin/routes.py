@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from ...extensions import db
-from ...models import Vocab
+from ...models import Vocab, Story
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_, cast, String
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -47,7 +48,23 @@ def validate_payload(data, partial=False):
 @bp.get("/vocab")
 @jwt_required()
 def list_vocab():
-    items = Vocab.query.order_by(Vocab.id.desc()).limit(500).all()
+    pos = request.args.get("pos")
+    limit = request.args.get("limit", default=500, type=int)
+    offset = request.args.get("offset", default=0, type=int)
+
+    query = Vocab.query
+
+    if pos:
+        query = query.filter(Vocab.parts_of_speech == pos)
+
+    items = (
+        query
+        .order_by(Vocab.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
     return jsonify([to_dict(v) for v in items])
 
 @bp.post("/vocab")
@@ -121,3 +138,44 @@ def delete_vocab(vid):
     db.session.delete(v)
     db.session.commit()
     return {"deleted": True}
+
+@bp.get("/stats")
+@jwt_required()
+def admin_stats():
+    vocab_count = Vocab.query.count()
+    stories_count = Story.query.count()
+
+    return jsonify({
+        "vocab_count": vocab_count,
+        "stories_count": stories_count,
+    }), 200
+    
+@bp.get("/vocab/search")
+@jwt_required()
+def admin_search_vocab():
+    q = (request.args.get("q") or "").strip()
+    limit = request.args.get("limit", default=20, type=int)
+
+    if len(q) < 2:
+        return jsonify([]), 200
+
+    like = f"%{q}%"
+
+    items = (
+        Vocab.query
+        .filter(
+            or_(
+                Vocab.german_word.ilike(like),
+                Vocab.english_word.ilike(like),
+                Vocab.plural.ilike(like),
+                Vocab.phrases.ilike(like),
+                cast(Vocab.parts_of_speech, String).ilike(like),
+                cast(Vocab.article, String).ilike(like),
+            )
+        )
+        .order_by(Vocab.german_word.asc())
+        .limit(limit)
+        .all()
+    )
+
+    return jsonify([to_dict(v) for v in items]), 200
