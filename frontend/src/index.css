@@ -71,3 +71,34 @@ body {
 .bg-radial-gold {
   background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(212,175,55,0.07) 0%, transparent 70%);
 }
+
+.date-input {
+  color-scheme: dark;
+  background-color: var(--color-navy);
+  color: var(--color-cream);
+  border-color: var(--color-gold-border);
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  filter: invert(84%) sepia(31%) saturate(653%) hue-rotate(358deg)
+    brightness(92%) contrast(90%);
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.date-input::-webkit-datetime-edit,
+.date-input::-webkit-datetime-edit-fields-wrapper,
+.date-input::-webkit-datetime-edit-text,
+.date-input::-webkit-datetime-edit-month-field,
+.date-input::-webkit-datetime-edit-day-field,
+.date-input::-webkit-datetime-edit-year-field {
+  color: var(--color-cream);
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}

@@ -1,8 +1,35 @@
-// const API = "/api";
 const API = import.meta.env.VITE_API_URL;
-console.log("API is : ",API);
-export function getToken() {
-  return localStorage.getItem("token");
+
+console.log("API is : ", API);
+
+export function getAccessToken() {
+  return localStorage.getItem("access_token");
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem("refresh_token");
+}
+
+export function setTokens({ access_token, refresh_token }) {
+  if (access_token) {
+    localStorage.setItem("access_token", access_token);
+  }
+
+  if (refresh_token) {
+    localStorage.setItem("refresh_token", refresh_token);
+  }
+}
+
+export function clearTokens() {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+
+  // Optional old key cleanup from your previous setup
+  localStorage.removeItem("token");
+}
+
+export function isLoggedIn() {
+  return Boolean(getAccessToken() || getRefreshToken());
 }
 
 export async function login(username, password) {
@@ -11,17 +38,96 @@ export async function login(username, password) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
-  if (!res.ok) throw new Error("Login failed");
-  return res.json();
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data.error || "Login failed");
+  }
+
+  setTokens(data);
+
+  return data;
 }
 
-async function authedFetch(url, options = {}) {
-  const token = getToken();
+export async function refreshAccessToken() {
+  const refreshToken = getRefreshToken();
+
+  if (!refreshToken) {
+    throw new Error("No refresh token");
+  }
+
+  const res = await fetch(`${API}/admin/refresh`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${refreshToken}`,
+    },
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data.error || data.msg || "Refresh failed");
+  }
+
+  setTokens({
+    access_token: data.access_token,
+  });
+
+  return data.access_token;
+}
+
+function redirectToLogin() {
+  clearTokens();
+
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+}
+
+async function authedFetch(url, options = {}, retry = true) {
+  const accessToken = getAccessToken();
+
   const headers = {
     ...(options.headers || {}),
-    Authorization: `Bearer ${token}`,
   };
-  return fetch(url, { ...options, headers });
+
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  let res = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (res.status === 401 && retry) {
+    try {
+      const newAccessToken = await refreshAccessToken();
+
+      const retryHeaders = {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${newAccessToken}`,
+      };
+
+      res = await fetch(url, {
+        ...options,
+        headers: retryHeaders,
+      });
+    } catch {
+      redirectToLogin();
+      throw new Error("Session expired. Please log in again.");
+    }
+  }
+
+  return res;
+}
+export function getToken() {
+  return getAccessToken();
+}
+export function logout() {
+  clearTokens();
+  window.location.href = "/login";
 }
 
 export async function adminList(pos) {
@@ -103,5 +209,90 @@ export async function vocabByLetter(letter) {
 export async function vocabDetail(id) {
   const res = await fetch(`${API}/vocab/${id}`);
   if (!res.ok) throw new Error("Detail fetch failed");
+  return res.json();
+}
+
+// stories api routes
+export async function listStories() {
+  const res = await fetch(`${API}/stories`);
+  if (!res.ok) throw new Error("Stories fetch failed");
+  return res.json();
+}
+
+export async function storyDetail(id) {
+  const res = await fetch(`${API}/stories/${id}`);
+  if (!res.ok) throw new Error("Story detail fetch failed");
+  return res.json();
+}
+
+export async function adminListStories() {
+  const res = await authedFetch(`${API}/admin/stories`);
+  if (!res.ok) throw new Error("Admin stories list failed");
+  return res.json();
+}
+
+export async function adminCreateStory(payload) {
+  const res = await authedFetch(`${API}/admin/stories`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const contentType = res.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await res.json()
+    : { error: await res.text() };
+
+  if (!res.ok) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+
+  return data;
+}
+
+export async function adminUpdateStory(id, payload) {
+  const res = await authedFetch(`${API}/admin/stories/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const contentType = res.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await res.json()
+    : { error: await res.text() };
+
+  if (!res.ok) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+
+  return data;
+}
+
+export async function adminDeleteStory(id) {
+  const res = await authedFetch(`${API}/admin/stories/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) throw new Error("Delete story failed");
+  return res.json();
+}
+
+export async function adminStats() {
+  const res = await authedFetch(`${API}/admin/stats`);
+  if (!res.ok) throw new Error("Admin stats failed");
+  return res.json();
+}
+
+export async function adminSearchVocab(query, limit = 20) {
+  const qs = new URLSearchParams();
+
+  if (query) qs.set("q", query);
+  if (limit) qs.set("limit", String(limit));
+
+  const res = await authedFetch(`${API}/admin/vocab/search?${qs.toString()}`);
+
+  if (!res.ok) throw new Error("Admin vocab search failed");
+
   return res.json();
 }

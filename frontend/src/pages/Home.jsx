@@ -133,6 +133,18 @@ export default function Home() {
             Browse A–Z
           </button>
           <button
+              onClick={() => navigate("/stories")}
+              style={{
+                fontFamily: S.body,
+                color: "rgba(232,224,208,0.6)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                fontSize: "0.95rem",
+              }}
+              className="px-6 py-3 rounded-lg bg-transparent cursor-pointer transition-all duration-200 hover:text-[var(--color-cream)]"
+            >
+              Read Stories
+          </button>
+          <button
             onClick={() => navigate("/learn")}
             style={{ fontFamily: S.body, color: "rgba(232,224,208,0.6)", border: "1px solid rgba(255,255,255,0.1)", fontSize: "0.95rem" }}
             className="px-6 py-3 rounded-lg bg-transparent cursor-pointer transition-all duration-200 hover:text-[var(--color-cream)]"

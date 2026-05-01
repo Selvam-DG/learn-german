@@ -5,22 +5,24 @@ import Admin      from "./pages/Admin";
 import Learn      from "./pages/Learn";
 import Home       from "./pages/Home";
 import Vocabulary from "./pages/Vocabulary";
+import Stories from "./pages/Stories";
+import AdminStories from "./pages/AdminStories";
+import { isLoggedIn as hasAuthToken, clearTokens } from "./api";
 
 function RequireAuth({ children }) {
-  const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/login" replace />;
+  return hasAuthToken() ? children : <Navigate to="/login" replace />;
 }
 
 function NavBar() {
   const [scrolled,   setScrolled]   = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  const [isLoggedIn, setIsLoggedIn] = useState(hasAuthToken());
   const location  = useLocation();
   const navigate  = useNavigate();
   const isHome    = location.pathname === "/";
 
   // Re-check auth whenever the route changes (e.g. after login/logout)
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem("token"));
+    setIsLoggedIn(hasAuthToken());
   }, [location.pathname]);
 
   useEffect(() => {
@@ -30,7 +32,7 @@ function NavBar() {
   }, []);
 
   function handleLogout() {
-    localStorage.removeItem("token");
+    clearTokens();
     setIsLoggedIn(false);
     navigate("/");
   }
@@ -68,6 +70,8 @@ function NavBar() {
           { to: "/",           label: "Home",       end: true  },
           { to: "/vocabulary", label: "Vocabulary",  end: false },
           { to: "/learn",      label: "Practice",    end: false },
+          { to: "/stories",      label: "Stories",    end: false },
+
         ].map(({ to, label, end }) => (
           <NavLink key={to} to={to} end={end} style={navLinkStyle}>
             {label}
@@ -149,6 +153,8 @@ export default function App() {
         <Route path="/learn"      element={<Learn />} />
         <Route path="/login"      element={<Login />} />
         <Route path="/admin"      element={<RequireAuth><Admin /></RequireAuth>} />
+        <Route path="/stories" element={<Stories />} />
+        <Route path="/admin/stories" element={<RequireAuth><AdminStories /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   );
